@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Птичий маршрут</title>
+<meta name="theme-color" content="#622ED6">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --accent:#622ED6; --accent-2:#EFE8FF; --accent-ink:#3D1A99;
+    --ink:#1B1A1F; --muted:#6B6875; --line:#E6E3EC; --bg:#F7F6FA; --card:#FFFFFF;
+    --ok:#1E7B4F; --ok-bg:#E5F5EC; --warn:#9A5B00; --warn-bg:#FFF4DC; --bad:#B42335; --bad-bg:#FDECEE;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-text-size-adjust:100%}
+  .wrap{max-width:560px;margin:0 auto;padding:16px 14px 96px}
+  header.top{display:flex;align-items:center;gap:12px;margin:4px 2px 16px}
+  .logo{width:42px;height:42px;border-radius:12px;background:var(--accent);display:grid;place-items:center;flex:none}
+  .logo svg{width:26px;height:26px}
+  h1{font-size:21px;margin:0;letter-spacing:-.2px;white-space:nowrap}
+  .sub{color:var(--muted);font-size:13px;margin-top:1px}
+  .status{margin-left:auto;font-size:12px;color:var(--muted);text-align:right;max-width:34%}
+  .status b{font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .card h2{font-size:17px;margin:0 0 12px}
+  label.f{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;font-size:17px;padding:12px 14px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;color:var(--ink);outline:none}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-2)}
+  .field{margin-bottom:12px}
+  button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:600;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  button:active{transform:scale(.98)}
+  .btn{background:var(--accent);color:#fff;width:100%;font-size:17px;padding:15px}
+  .btn[disabled]{opacity:.45}
+  .btn.sec{background:var(--accent-2);color:var(--accent-ink)}
+  .btn.ghost{background:transparent;color:var(--muted);font-weight:500}
+  .btn.danger{background:var(--bad-bg);color:var(--bad)}
+  .row{display:flex;gap:10px}
+  .row > *{flex:1}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .big{height:92px;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .big small{font-weight:500;font-size:12px;opacity:.85}
+  .opt{background:var(--accent-2);color:var(--accent-ink);font-size:17px;padding:14px 6px}
+  .opts{display:grid;gap:8px}
+  .opts.c5{grid-template-columns:repeat(5,1fr)}
+  .opts.c2{grid-template-columns:1fr 1fr}
+  .opts.c4{grid-template-columns:repeat(4,1fr)}
+  .opts.c4 .opt{font-size:15px}
+  .sugg{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .sugg button{text-align:left;background:var(--accent-2);color:var(--accent-ink)}
+  .sugg button.raw{background:#fff;border:1px dashed var(--accent);color:var(--accent-ink)}
+  .stepline{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .stepline .q{font-size:17px;font-weight:600}
+  .chip{display:inline-block;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-2);color:var(--accent-ink);font-weight:600}
+  .chip.voice{background:#E3F1FF;color:#14508F}
+  .draft{font-size:14px;color:var(--muted);margin-bottom:10px}
+  .draft b{color:var(--ink)}
+  .live{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px}
+  .timer{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .live .meta{font-size:13px;color:var(--muted);text-align:right}
+  .note{border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:12px}
+  .note.warn{background:var(--warn-bg);color:var(--warn)}
+  .note.bad{background:var(--bad-bg);color:var(--bad)}
+  .note.ok{background:var(--ok-bg);color:var(--ok)}
+  .note.info{background:var(--accent-2);color:var(--accent-ink)}
+  ul.recs{list-style:none;margin:0;padding:0}
+  ul.recs li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  ul.recs li:first-child{border-top:0}
+  .recs .t{font-size:12px;color:var(--muted);width:42px;flex:none;font-variant-numeric:tabular-nums}
+  .recs .main{flex:1;min-width:0}
+  .recs .sp{font-weight:600}
+  .recs .det{font-size:13px;color:var(--muted)}
+  .x{background:transparent;color:var(--muted);padding:8px 10px;font-size:18px;line-height:1}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}
+  .stat{background:var(--bg);border-radius:12px;padding:10px 12px}
+  .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted)}
+  .stat.hl{background:var(--accent);color:#fff}
+  .stat.hl .l{color:#E6DCFF}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:7px 4px;border-bottom:1px solid var(--line)}
+  th{font-size:12px;color:var(--muted);font-weight:600}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  .routes .r{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+  .routes .r:first-child{border-top:0}
+  .routes .r .main{flex:1;min-width:0}
+  .routes .r .p{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .routes .r .d{font-size:13px;color:var(--muted)}
+  .routes .r button{background:var(--accent-2);color:var(--accent-ink);padding:9px 12px;font-size:14px}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  details{font-size:14px;color:var(--muted)}
+  details summary{cursor:pointer;color:var(--accent-ink);font-weight:600;padding:4px 0}
+  details p{margin:8px 0}
+  .toast{position:fixed;left:14px;right:14px;bottom:18px;margin:0 auto;max-width:532px;justify-content:space-between;background:var(--ink);color:#fff;
+    border-radius:14px;padding:12px 14px;display:flex;gap:14px;align-items:center;font-size:15px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:20}
+  .toast button{background:transparent;color:#C9B6FF;padding:4px 2px}
+  .hidden{display:none !important}
+  .modal{position:fixed;inset:0;background:rgba(20,16,30,.45);display:flex;align-items:flex-end;justify-content:center;z-index:30}
+  .modal .sheet{background:#fff;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:20px 16px 24px;max-height:92vh;overflow:auto}
+  @media (min-width:600px){ .modal{align-items:center} .modal .sheet{border-radius:20px} }
+  .sheet h3{margin:0 0 6px;font-size:19px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Птичий маршрут</h1>
+      <div class="sub">Маршрутный учёт птиц</div>
+    </div>
+    <div class="status" id="syncStatus">Подключение…</div>
+  </header>
+
+  <!-- ===== Нет маршрута ===== -->
+  <section id="viewIdle">
+    <div class="card">
+      <h2>Новый маршрут</h2>
+      <div class="field">
+        <label class="f" for="inObserver">Учётчик</label>
+        <input type="text" id="inObserver" placeholder="Имя и фамилия" autocomplete="name">
+      </div>
+      <div class="field">
+        <label class="f" for="inPlace">Место маршрута</label>
+        <input type="text" id="inPlace" placeholder="Экопарк «Затюменский»">
+      </div>
+      <div class="note info small">Перед стартом включи шагомер и распознавание голосов в Merlin Bird ID. Время начала запишется само.</div>
+      <button class="btn" id="btnStart">Начать маршрут</button>
+    </div>
+
+    <div class="card">
+      <div class="stepline"><h2 style="margin:0">Маршруты</h2>
+        <button class="opt" id="btnExportAll" style="padding:9px 12px;font-size:14px">Excel: все</button></div>
+      <div id="routesEmpty" class="muted small">Завершённых маршрутов пока нет.</div>
+      <div class="routes" id="routesList"></div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Как вести учёт и как считается</summary>
+        <p><b>Сидит</b> — птица сидит, или взлетела у тебя на глазах (видно, откуда начала полёт). <b>Летит</b> — пролетает мимо, а откуда взлетела, не видно.</p>
+        <p><b>Расстояние</b> — примерное расстояние от тебя до птицы: 0–25, 26–100, 101–300 или больше 300 м.</p>
+        <p><b>Merlin</b> иногда принимает шум за птиц. Если он предложил вид, нетипичный для Тюмени, страница попросит подтверждение.</p>
+        <p><b>Встреч на 10 км</b> = число встреч ÷ длина маршрута × 10.</p>
+        <p><b>Плотность</b> (особей/км², по Ю. С. Равкину): птицы каждого класса дальности пересчитываются на свою ширину полосы — 25, 100, 300 и 1000 м. Сидящие: n ÷ (2 × L × ширина). Летящие: то же × (скорость учётчика ÷ 30 км/ч).</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== Маршрут идёт ===== -->
+  <section id="viewActive" class="hidden">
+    <div class="card">
+      <div class="live">
+        <div>
+          <div class="small muted" id="actPlace"></div>
+          <div class="timer" id="actTimer">0:00:00</div>
+        </div>
+        <div class="meta" id="actMeta"></div>
+      </div>
+
+      <div id="panelChoose">
+        <div class="grid2">
+          <button class="btn big" id="btnSeen">Увидел<small>встреча</small></button>
+          <button class="btn big sec" id="btnHeard">Услышал<small>по Merlin</small></button>
+        </div>
+      </div>
+
+      <!-- шаги записи -->
+      <div id="panelStep" class="hidden">
+        <div class="stepline">
+          <span class="q" id="stepQ"></span>
+          <span class="chip" id="stepSrc"></span>
+        </div>
+        <div class="draft" id="stepDraft"></div>
+
+        <div id="stSpecies">
+          <input type="search" id="inSpecies" placeholder="Начни вводить: «больш син»" autocomplete="off" autocapitalize="off" enterkeyhint="done">
+          <div id="voiceWarn" class="note warn hidden" style="margin:10px 0 0"></div>
+          <div class="sugg" id="suggList"></div>
+        </div>
+
+        <div id="stCount" class="hidden">
+          <div class="opts c5" id="countOpts"></div>
+          <div class="row" style="margin-top:10px">
+            <input type="number" id="inCount" placeholder="Другое число" inputmode="numeric" min="1">
+            <button class="opt" id="btnCount" style="flex:0 0 96px">Готово</button>
+          </div>
+        </div>
+
+        <div id="stPos" class="hidden">
+          <div class="opts c2">
+            <button class="opt" data-pos="сидит">Сидит</button>
+            <button class="opt" data-pos="летит">Летит</button>
+          </div>
+        </div>
+
+        <div id="stBand" class="hidden">
+          <div class="opts c4" id="bandOpts"></div>
+        </div>
+
+        <button class="btn ghost" id="btnCancelStep" style="margin-top:8px">Отмена</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stepline"><h2 style="margin:0">Записи</h2><span class="small muted" id="recCount"></span></div>
+      <div id="recEmpty" class="muted small">Пока пусто. Нажми «Увидел» или «Услышал».</div>
+      <ul class="recs" id="recList"></ul>
+    </div>
+
+    <button class="btn danger" id="btnFinish">Завершить маршрут</button>
+  </section>
+</div>
+
+<!-- Завершение -->
+<div class="modal hidden" id="mFinish">
+  <div class="sheet">
+    <h3>Завершить маршрут</h3>
+    <p class="muted small" id="finishInfo"></p>
+    <div class="field">
+      <label class="f" for="inKm">Пройдено по шагомеру, км</label>
+      <input type="text" id="inKm" inputmode="decimal" placeholder="Например: 3,4">
+    </div>
+    <div id="kmErr" class="note bad hidden">Введи километры числом, например 3,4.</div>
+    <button class="btn" id="btnFinishOk">Сохранить и посчитать</button>
+    <button class="btn ghost" id="btnFinishCancel">Продолжить маршрут</button>
+  </div>
+</div>
+
+<!-- Итог маршрута -->
+<div class="modal hidden" id="mSummary">
+  <div class="sheet">
+    <h3 id="sumTitle"></h3>
+    <p class="muted small" id="sumSub"></p>
+    <div class="stats" id="sumStats"></div>
+    <table id="sumTable"></table>
+    <div id="sumMsg" class="note hidden" style="margin-top:12px"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="btnSumExcel">Скачать Excel</button>
+    </div>
+    <button class="btn ghost" id="btnSumDelete" style="margin-top:6px">Удалить маршрут</button>
+    <button class="btn sec" id="btnSumClose" style="margin-top:6px">Закрыть</button>
+  </div>
+</div>
+
+<!-- Подтверждение -->
+<div class="modal hidden" id="mConfirm">
+  <div class="sheet">
+    <h3 id="cfTitle"></h3>
+    <p class="muted" id="cfText"></p>
+    <div class="row">
+      <button class="btn sec" id="cfNo">Отмена</button>
+      <button class="btn" id="cfYes">Да</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"><span id="toastText"></span><button id="toastUndo">Отменить</button></div>
+
+<script>
+"use strict";
+/* ================== Настройки расчёта ================== */
+const BANDS = [["0–25 м",25],["26–100 м",100],["101–300 м",300],[">300 м",1000]];
+const FLIGHT_SPEED_KMH = 30;
+
+/* ================== Виды (обычные птицы Тюмени) ================== */
+const SPECIES = ["Большая синица","Лазоревка","Белая лазоревка","Московка","Пухляк","Длиннохвостая синица",
+"Обыкновенный поползень","Обыкновенная пищуха","Большой пёстрый дятел","Малый пёстрый дятел","Белоспинный дятел",
+"Трёхпалый дятел","Седой дятел","Желна","Вертишейка","Сорока","Серая ворона","Грач","Галка","Ворон","Сойка",
+"Сизый голубь","Вяхирь","Большая горлица","Домовый воробей","Полевой воробей","Снегирь","Свиристель",
+"Обыкновенная чечётка","Зеленушка","Щегол","Чиж","Зяблик","Вьюрок","Обыкновенная чечевица","Щур","Клёст-еловик",
+"Обыкновенная овсянка","Белошапочная овсянка","Камышовая овсянка","Рябинник","Белобровик","Певчий дрозд","Деряба",
+"Зарянка","Обыкновенный соловей","Варакушка","Обыкновенная горихвостка","Луговой чекан","Обыкновенная каменка",
+"Серая мухоловка","Мухоловка-пеструшка","Малая мухоловка","Пеночка-весничка","Пеночка-теньковка","Пеночка-трещотка",
+"Зелёная пеночка","Пеночка-зарничка","Садовая славка","Серая славка","Славка-завирушка","Садовая камышовка",
+"Камышовка-барсучок","Болотная камышовка","Зелёная пересмешка","Королёк","Белая трясогузка","Жёлтая трясогузка",
+"Желтоголовая трясогузка","Лесной конёк","Полевой жаворонок","Деревенская ласточка","Городская ласточка","Береговушка",
+"Чёрный стриж","Обыкновенная кукушка","Обыкновенный скворец","Обыкновенная иволга","Сорокопут-жулан","Серый сорокопут",
+"Сизая чайка","Озёрная чайка","Речная крачка","Чёрная крачка","Кряква","Чирок-свистунок","Чирок-трескунок","Гоголь",
+"Хохлатая чернеть","Большая поганка","Лысуха","Серая цапля","Чибис","Малый зуёк","Перевозчик","Бекас","Большой улит",
+"Фифи","Обыкновенная пустельга","Чеглок","Ястреб-перепелятник","Ястреб-тетеревятник","Чёрный коршун","Обыкновенный канюк",
+"Болотный лунь","Ушастая сова","Серая неясыть","Мохноногий сыч","Рябчик","Тетерев","Серая куропатка"];
+
+const norm = s => s.toLowerCase().replace(/ё/g,"е").replace(/-/g," ").replace(/\s+/g," ").trim();
+const SPN = SPECIES.map(norm);
+function findSpecies(q){
+  q = norm(q); if(!q) return [];
+  const exact = SPN.findIndex(s => s === q);
+  if(exact >= 0) return [exact];
+  const words = q.split(" ");
+  let hits = [];
+  SPN.forEach((s,i) => { const parts = s.split(" ");
+    if(words.every(w => parts.some(p => p.startsWith(w)))) hits.push(i); });
+  if(!hits.length) SPN.forEach((s,i) => { if(s.includes(q)) hits.push(i); });
+  return hits.slice(0,8);
+}
+
+/* ================== Расчёты ================== */
+function hoursOf(r){ return (r.start && r.end) ? (r.end - r.start)/3600000 : null; }
+function walkSpeed(r){ const h = hoursOf(r); return (h && r.km) ? r.km/h : null; }
+function recDensity(rec, km, v){
+  const w = BANDS[rec.band][1]/1000;
+  let d = rec.cnt/(2*km*w);
+  if(rec.pos === "летит") d = v ? d*v/FLIGHT_SPEED_KMH : 0;
+  return d;
+}
+function stats(r){
+  const km = r.km || 0, v = walkSpeed(r);
+  const st = {records:r.records.length, birds:0, species:0, per10:km ? r.records.length/km*10 : null,
+              dSit:0, dFly:0, v, by:{}};
+  for(const rec of r.records){
+    st.birds += rec.cnt;
+    const s = st.by[rec.species] || (st.by[rec.species] = {records:0, birds:0, dSit:0, dFly:0});
+    s.records++; s.birds += rec.cnt;
+    if(km){ const d = recDensity(rec, km, v);
+      if(rec.pos === "летит"){ s.dFly += d; st.dFly += d; } else { s.dSit += d; st.dSit += d; } }
+  }
+  st.species = Object.keys(st.by).length;
+  for(const s of Object.values(st.by)) s.per10 = km ? s.records/km*10 : null;
+  return st;
+}
+const fmt = (x, nd=1) => (x == null || !isFinite(x)) ? "—" : x.toFixed(nd).replace(".", ",");
+const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x*100)/100;
+const pad = n => String(n).padStart(2,"0");
+const fTime = t => { const d = new Date(t); return pad(d.getHours())+":"+pad(d.getMinutes()); };
+const fDate = t => { const d = new Date(t); return pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear(); };
+const fDT = t => t ? fDate(t)+" "+fTime(t) : "";
+function fDur(ms){ const m = Math.floor(ms/60000); return Math.floor(m/60)+" ч "+(m%60)+" мин"; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+/* ================== Хранилище ================== */
+const LS_KEY = "bird_routes_v1", LS_NAME = "bird_observer_v1";
+function lsGet(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+let local = lsGet(LS_KEY, []);          // мои маршруты на этом устройстве (резервная копия)
+let remote = new Map();                 // маршруты из общей базы
+let db = null, downloads = null, myId = null, remoteReady = false;
+
+function saveLocal(){ lsSet(LS_KEY, local); }
+function activeRoute(){ return local.find(r => !r.end) || null; }
+function allFinished(){
+  const m = new Map();
+  for(const r of remote.values()) if(r.end) m.set(r.id, r);
+  for(const r of local) if(r.end && !m.has(r.id)) m.set(r.id, r);
+  return [...m.values()].sort((a,b) => b.start - a.start);
+}
+function getRoute(id){ return local.find(r => r.id === id) || remote.get(id) || null; }
+
+// одна запись в базу за раз на каждый маршрут
+const writing = {}, dirty = {};
+async function pushRoute(r){
+  if(!db) return;
+  if(writing[r.id]){ dirty[r.id] = true; return; }
+  writing[r.id] = true;
+  try{
+    do{
+      dirty[r.id] = false;
+      const body = JSON.parse(JSON.stringify(r)); delete body.synced;
+      body.owner = myId || null;
+      try{ await db.collection("routes").doc(r.id).set(body); }
+      catch(e){
+        if(e && e.code === "unavailable"){ await new Promise(s => setTimeout(s, 800+Math.random()*800));
+          await db.collection("routes").doc(r.id).set(body); }
+        else throw e;
+      }
+      const l = local.find(x => x.id === r.id);
+      if(l && !dirty[r.id]){ l.synced = true; saveLocal(); }
+    } while(dirty[r.id]);
+    setStatus();
+  }catch(e){
+    statusMsg = (e && e.code === "quota_exceeded") ? "База заполнена — сохраняю только на телефоне"
+              : "Не удалось сохранить в общую базу — данные есть на телефоне";
+    setStatus();
+  }finally{ writing[r.id] = false; }
+}
+function touch(r){ r.synced = false; saveLocal(); pushRoute(r); }
+
+let statusMsg = "";
+function setStatus(){
+  const el = document.getElementById("syncStatus");
+  if(statusMsg){ el.innerHTML = esc(statusMsg); return; }
+  if(!db){ el.innerHTML = "Сохраняется<br><b>на этом телефоне</b>"; return; }
+  const pending = local.some(r => !r.synced);
+  el.innerHTML = pending ? "Сохраняю в<br><b>общую базу…</b>" : (remoteReady ? "Общая база:<br><b>сохранено</b>" : "Подключаюсь к базе…");
+}
+
+async function initCapabilities(){
+  if(!window.claude || !window.claude.use){ setStatus(); return; }
+  try{ downloads = await window.claude.use("downloads"); }catch(e){ downloads = null; }
+  try{
+    const user = await window.claude.use("user");
+    if(user && user.id){ try{ myId = await user.id(); }catch(e){} }
+  }catch(e){}
+  try{ db = await window.claude.use("db"); }catch(e){ db = null; }
+  setStatus();
+  if(!db) return;
+  const timer = setTimeout(() => { if(!remoteReady){ statusMsg = "Общая база пока недоступна — пишу на телефон"; setStatus(); } }, 10000);
+  db.collection("routes").onSnapshot(snap => {
+    const m = new Map();
+    for(const d of snap.docs){ const v = d.data(); if(v && v.id && Array.isArray(v.records)) m.set(v.id, v); }
+    remote = m;
+    if(!snap.metadata.fromCache && !remoteReady){
+      remoteReady = true; clearTimeout(timer); statusMsg = "";
+      for(const r of local) if(!r.synced) pushRoute(r);   // догружаем то, что записали без сети
+    }
+    setStatus(); renderRoutes();
+  }, err => { clearTimeout(timer); statusMsg = "Общая база недоступна — пишу на телефон"; setStatus(); });
+}
+
+/* ================== Интерфейс ================== */
+const $ = id => document.getElementById(id);
+let draft = null, timerInt = null;
+
+function show(){
+  const r = activeRoute();
+  $("viewIdle").classList.toggle("hidden", !!r);
+  $("viewActive").classList.toggle("hidden", !r);
+  clearInterval(timerInt);
+  if(r){ $("actPlace").textContent = r.place; tick(); timerInt = setInterval(tick, 1000); renderRecords(); resetStep(); }
+  else renderRoutes();
+}
+function tick(){
+  const r = activeRoute(); if(!r) return;
+  const s = Math.max(0, Math.floor((Date.now() - r.start)/1000));
+  $("actTimer").textContent = Math.floor(s/3600)+":"+pad(Math.floor(s/60)%60)+":"+pad(s%60);
+}
+
+function renderRecords(){
+  const r = activeRoute(); if(!r) return;
+  const n = r.records.length, birds = r.records.reduce((a,x) => a+x.cnt, 0);
+  const sp = new Set(r.records.map(x => x.species)).size;
+  $("actMeta").innerHTML = "Начало "+fTime(r.start)+"<br>"+sp+" видов · "+birds+" особей";
+  $("recCount").textContent = n ? n+" встреч" : "";
+  $("recEmpty").classList.toggle("hidden", n > 0);
+  $("recList").innerHTML = r.records.slice().reverse().map(x =>
+    `<li><span class="t">${fTime(x.ts)}</span><div class="main"><div class="sp">${esc(x.species)} × ${x.cnt}</div>
+     <div class="det">${x.pos}, ${BANDS[x.band][0]}${x.src !== "визуально" ? " · по голосу" : ""}${x.inList ? "" : " · не из списка"}</div></div>
+     <button class="x" data-del="${x.id}" aria-label="Удалить запись">×</button></li>`).join("");
+}
+
+function renderRoutes(){
+  const list = allFinished();
+  $("routesEmpty").classList.toggle("hidden", list.length > 0);
+  $("btnExportAll").classList.toggle("hidden", list.length === 0);
+  $("routesList").innerHTML = list.map(r => {
+    const st = stats(r);
+    return `<div class="r"><div class="main"><div class="p">${esc(r.place)}</div>
+      <div class="d">${fDT(r.start)} · ${fmt(r.km,2)} км · ${esc(r.observer||"")}</div>
+      <div class="d">${st.species} видов · ${fmt(st.dSit+st.dFly)} ос/км²</div></div>
+      <button data-open="${r.id}">Итог</button></div>`;
+  }).join("");
+}
+
+/* ---- шаги записи встречи ---- */
+function resetStep(){
+  draft = null;
+  $("panelChoose").classList.remove("hidden");
+  $("panelStep").classList.add("hidden");
+}
+function setStep(name){
+  for(const s of ["stSpecies","stCount","stPos","stBand"]) $(s).classList.toggle("hidden", s !== name);
+  const q = {stSpecies:"Какой вид?", stCount:"Сколько особей?", stPos:"Положение птицы?", stBand:"Расстояние до птицы?"}[name];
+  $("stepQ").textContent = q;
+  const parts = [];
+  if(draft.species) parts.push("<b>"+esc(draft.species)+"</b>");
+  if(draft.cnt) parts.push("× "+draft.cnt);
+  if(draft.pos) parts.push(draft.pos);
+  $("stepDraft").innerHTML = parts.join(" · ");
+  $("stepDraft").classList.toggle("hidden", !parts.length);
+}
+function startEncounter(src){
+  draft = {src};
+  $("panelChoose").classList.add("hidden");
+  $("panelStep").classList.remove("hidden");
+  $("stepSrc").textContent = src === "визуально" ? "увидел" : "по голосу";
+  $("stepSrc").className = "chip" + (src === "визуально" ? "" : " voice");
+  $("inSpecies").value = ""; $("suggList").innerHTML = ""; $("voiceWarn").classList.add("hidden");
+  setStep("stSpecies");
+  setTimeout(() => $("inSpecies").focus(), 30);
+}
+function renderSugg(){
+  const q = $("inSpecies").value.trim();
+  const hits = findSpecies(q);
+  const exact = hits.length === 1 && SPN[hits[0]] === norm(q);
+  let html = hits.map(i => `<button data-sp="${i}">${esc(SPECIES[i])}</button>`).join("");
+  if(q && !exact) html += `<button class="raw" data-raw="1">Записать «${esc(q)}» как есть</button>`;
+  $("suggList").innerHTML = html;
+  const w = $("voiceWarn");
+  if(q.length >= 3 && !hits.length){
+    w.innerHTML = draft.src === "визуально"
+      ? "Такого вида нет в списке птиц Тюмени. Проверь название."
+      : "⚠️ Такого вида нет в списке птиц Тюмени — возможно, Merlin ошибся. Записывай, только если уверен.";
+    w.classList.remove("hidden");
+  } else w.classList.add("hidden");
+}
+function pickSpecies(name, inList){
+  draft.species = name; draft.inList = inList;
+  $("inSpecies").blur();
+  setStep("stCount");
+}
+function pickCount(n){ draft.cnt = n; setStep("stPos"); }
+function pickPos(p){ draft.pos = p; setStep("stBand"); }
+function pickBand(b){
+  const r = activeRoute(); if(!r){ resetStep(); return; }
+  const rec = {id:uid(), ts:Date.now(), species:draft.species, cnt:draft.cnt, pos:draft.pos, band:b, src:draft.src, inList:!!draft.inList};
+  r.records.push(rec); touch(r);
+  resetStep(); renderRecords();
+  toast(`Записано: ${rec.species} × ${rec.cnt}`, () => removeRecord(rec.id));
+}
+function removeRecord(id){
+  const r = activeRoute(); if(!r) return;
+  const i = r.records.findIndex(x => x.id === id); if(i < 0) return;
+  r.records.splice(i,1); touch(r); renderRecords();
+}
+
+/* ---- уведомления и подтверждения ---- */
+let toastT = null;
+function toast(text, undo){
+  $("toastText").textContent = text;
+  $("toastUndo").classList.toggle("hidden", !undo);
+  $("toastUndo").onclick = () => { if(undo) undo(); $("toast").classList.add("hidden"); };
+  $("toast").classList.remove("hidden");
+  clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.add("hidden"), 5000);
+}
+function confirmBox(title, text, yes){
+  $("cfTitle").textContent = title; $("cfText").textContent = text;
+  $("mConfirm").classList.remove("hidden");
+  $("cfYes").onclick = () => { $("mConfirm").classList.add("hidden"); yes(); };
+  $("cfNo").onclick = () => $("mConfirm").classList.add("hidden");
+}
+
+/* ---- итог маршрута ---- */
+let shownId = null;
+function openSummary(id){
+  const r = getRoute(id); if(!r) return;
+  shownId = id;
+  const st = stats(r);
+  $("sumTitle").textContent = r.place;
+  $("sumSub").textContent = `${fDate(r.start)}, ${fTime(r.start)}–${fTime(r.end)} (${fDur(r.end-r.start)}) · ${r.observer||""}`;
+  $("sumStats").innerHTML = [
+    ["hl", fmt(st.dSit+st.dFly), "особей/км² всего"],
+    ["", fmt(st.per10), "встреч на 10 км"],
+    ["", fmt(r.km,2)+" км", "пройдено"],
+    ["", st.species+" / "+st.birds, "видов / особей"],
+    ["", fmt(st.dSit), "плотность сидящих"],
+    ["", fmt(st.dFly), "плотность летящих"],
+  ].map(([c,v,l]) => `<div class="stat ${c}"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+  const rows = Object.entries(st.by).sort((a,b) => (b[1].dSit+b[1].dFly)-(a[1].dSit+a[1].dFly));
+  $("sumTable").innerHTML = rows.length
+    ? `<tr><th>Вид</th><th class="n">Встреч</th><th class="n">Особей</th><th class="n">ос/км²</th></tr>` +
+      rows.map(([n,s]) => `<tr><td>${esc(n)}</td><td class="n">${s.records}</td><td class="n">${s.birds}</td><td class="n">${fmt(s.dSit+s.dFly)}</td></tr>`).join("")
+    : `<tr><td class="muted">Записей нет</td></tr>`;
+  $("sumMsg").classList.add("hidden");
+  $("mSummary").classList.remove("hidden");
+}
+function sumMsg(cls, text){ const m = $("sumMsg"); m.className = "note "+cls; m.textContent = text; }
+
+/* ---- выгрузка в Excel ---- */
+function buildWorkbook(routes){
+  const A = [["№","Учётчик","Место","Начало","Конец","Длительность, мин","Длина, км","Скорость, км/ч","Видов","Особей","Встреч",
+              "Встреч на 10 км","Плотность сидящих, ос/км²","Плотность летящих, ос/км²","Плотность всего, ос/км²"]];
+  const B = [["№","Место","Вид","Встреч","Особей","Встреч на 10 км","Плотность сидящих, ос/км²","Плотность летящих, ос/км²","Плотность всего, ос/км²"]];
+  const C = [["№","Место","Время","Вид","Количество","Положение","Расстояние","Способ обнаружения","Вид в списке Тюмени"]];
+  routes.slice().sort((a,b) => a.start-b.start).forEach((r,i) => {
+    const st = stats(r), n = i+1;
+    A.push([n, r.observer||"", r.place, fDT(r.start), fDT(r.end), Math.round((r.end-r.start)/60000), r.km, r2(st.v),
+            st.species, st.birds, st.records, r2(st.per10), r2(st.dSit), r2(st.dFly), r2(st.dSit+st.dFly)]);
+    for(const [name,s] of Object.entries(st.by).sort())
+      B.push([n, r.place, name, s.records, s.birds, r2(s.per10), r2(s.dSit), r2(s.dFly), r2(s.dSit+s.dFly)]);
+    for(const x of r.records)
+      C.push([n, r.place, fDT(x.ts), x.species, x.cnt, x.pos, BANDS[x.band][0], x.src, x.inList ? "да" : "нет (проверить)"]);
+  });
+  return {A,B,C};
+}
+function toCsv(rows){
+  return "﻿" + rows.map(r => r.map(v => {
+    if(v == null) return "";
+    if(typeof v === "number") return String(v).replace(".", ",");
+    const s = String(v); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(";")).join("\r\n");
+}
+async function exportRoutes(routes, filename, onMsg){
+  const {A,B,C} = buildWorkbook(routes);
+  let data, name;
+  if(window.XLSX){
+    const wb = XLSX.utils.book_new();
+    const add = (rows, title, widths) => { const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!cols"] = widths.map(w => ({wch:w})); XLSX.utils.book_append_sheet(wb, ws, title); };
+    add(A, "Маршруты", [4,18,24,17,17,10,9,9,7,7,7,10,12,12,12]);
+    add(B, "По видам", [4,24,26,7,7,10,12,12,12]);
+    add(C, "Все встречи", [4,24,17,26,10,10,11,16,14]);
+    data = new Uint8Array(XLSX.write(wb, {bookType:"xlsx", type:"array"}));
+    name = filename + ".xlsx";
+  } else {
+    data = toCsv([...A, [], ...B, [], ...C]);
+    name = filename + ".csv";
+  }
+  try{
+    if(downloads){
+      await downloads.save({filename:name, data});
+      onMsg("ok", "Файл сохранён.");
+    } else {
+      const blob = new Blob([data], {type: name.endsWith(".csv") ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      onMsg("ok", "Файл скачивается.");
+    }
+  }catch(e){
+    if(e && e.code === "declined") return;
+    if(e && e.code === "rate_limited") onMsg("warn", "Окно сохранения уже открыто — подтверди или закрой его.");
+    else onMsg("bad", "Не получилось сохранить файл здесь.");
+  }
+}
+
+/* ================== События ================== */
+$("inObserver").value = lsGet(LS_NAME, "");
+$("inObserver").addEventListener("change", e => lsSet(LS_NAME, e.target.value.trim()));
+
+$("btnStart").onclick = () => {
+  const place = $("inPlace").value.trim() || "Без названия";
+  const observer = $("inObserver").value.trim();
+  lsSet(LS_NAME, observer);
+  const r = {id:uid(), place, observer, start:Date.now(), end:null, km:null, records:[]};
+  local.push(r); touch(r); $("inPlace").value = ""; show();
+};
+$("btnSeen").onclick = () => startEncounter("визуально");
+$("btnHeard").onclick = () => startEncounter("голос (Merlin)");
+$("btnCancelStep").onclick = resetStep;
+$("inSpecies").addEventListener("input", renderSugg);
+$("inSpecies").addEventListener("keydown", e => {
+  if(e.key !== "Enter") return;
+  const first = $("suggList").querySelector("button"); if(first){ e.preventDefault(); first.click(); }
+});
+$("suggList").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.sp != null) return pickSpecies(SPECIES[+b.dataset.sp], true);
+  const raw = $("inSpecies").value.trim(); if(!raw) return;
+  const name = raw.charAt(0).toUpperCase() + raw.slice(1);
+  if(draft.src !== "визуально")
+    confirmBox("Нетипичный вид", `«${name}» нет в списке птиц Тюмени. Merlin мог принять шум за птицу. Всё равно записать?`, () => pickSpecies(name, false));
+  else pickSpecies(name, false);
+});
+$("countOpts").innerHTML = [1,2,3,4,5].map(n => `<button class="opt" data-n="${n}">${n}</button>`).join("");
+$("countOpts").addEventListener("click", e => { const b = e.target.closest("button"); if(b) pickCount(+b.dataset.n); });
+$("btnCount").onclick = () => { const n = parseInt($("inCount").value, 10); if(n > 0){ $("inCount").value = ""; pickCount(n); } };
+$("stPos").addEventListener("click", e => { const b = e.target.closest("button"); if(b) pickPos(b.dataset.pos); });
+$("bandOpts").innerHTML = BANDS.map((b,i) => `<button class="opt" data-b="${i}">${b[0].replace(" м","")}<br><small style="font-weight:500">м</small></button>`).join("");
+$("bandOpts").addEventListener("click", e => { const b = e.target.closest("button"); if(b) pickBand(+b.dataset.b); });
+$("recList").addEventListener("click", e => {
+  const b = e.target.closest("button[data-del]"); if(!b) return;
+  const r = activeRoute(), x = r && r.records.find(y => y.id === b.dataset.del); if(!x) return;
+  confirmBox("Удалить запись?", `${x.species} × ${x.cnt}, ${fTime(x.ts)}`, () => removeRecord(x.id));
+});
+
+let pendingEnd = null;
+$("btnFinish").onclick = () => {
+  const r = activeRoute(); if(!r) return;
+  pendingEnd = Date.now();
+  $("finishInfo").textContent = `Окончание: ${fTime(pendingEnd)} · в пути ${fDur(pendingEnd - r.start)} · записей: ${r.records.length}`;
+  $("inKm").value = ""; $("kmErr").classList.add("hidden");
+  $("mFinish").classList.remove("hidden");
+  setTimeout(() => $("inKm").focus(), 30);
+};
+$("btnFinishCancel").onclick = () => { pendingEnd = null; $("mFinish").classList.add("hidden"); };
+$("btnFinishOk").onclick = () => {
+  const km = parseFloat($("inKm").value.replace(",", ".").replace(/[^\d.]/g, ""));
+  if(!(km > 0)){ $("kmErr").classList.remove("hidden"); return; }
+  const r = activeRoute(); if(!r) return;
+  r.end = pendingEnd || Date.now(); r.km = km; touch(r);
+  $("mFinish").classList.add("hidden");
+  show(); openSummary(r.id);
+};
+
+$("routesList").addEventListener("click", e => { const b = e.target.closest("button[data-open]"); if(b) openSummary(b.dataset.open); });
+$("btnSumClose").onclick = () => $("mSummary").classList.add("hidden");
+$("btnSumExcel").onclick = () => {
+  const r = getRoute(shownId); if(!r) return;
+  exportRoutes([r], "marshrut_"+fDate(r.start).split(".").reverse().join("-")+"_"+norm(r.place).replace(/[^a-zа-я0-9]+/g,"_").slice(0,30), sumMsg);
+};
+$("btnSumDelete").onclick = () => {
+  const r = getRoute(shownId); if(!r) return;
+  confirmBox("Удалить маршрут?", `${r.place}, ${fDT(r.start)}. Это нельзя отменить.`, async () => {
+    local = local.filter(x => x.id !== r.id); saveLocal();
+    if(db){ try{ await db.collection("routes").doc(r.id).delete(); remote.delete(r.id); }
+      catch(e){ sumMsg("bad", "Не получилось удалить из общей базы — удалить может владелец страницы."); renderRoutes(); return; } }
+    $("mSummary").classList.add("hidden"); renderRoutes();
+  });
+};
+$("btnExportAll").onclick = () => {
+  const list = allFinished(); if(!list.length) return;
+  const d = new Date();
+  exportRoutes(list, `vse_marshruty_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
+    (cls, t) => toast(t));
+};
+
+show(); setStatus(); initCapabilities();
+</script>
+</body>
+</html>
